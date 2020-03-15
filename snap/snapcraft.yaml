@@ -8,6 +8,14 @@ description: |
 
   This Snap contains ONVIF client and server based on GStreamer from:
   https://github.com/GStreamer/gst-rtsp-server
+
+  Run server by copying files into /var/snap/onvif-gstreamer-lool/common
+  and running e.g.:
+  onvif-gstreamer-lool.test-onvif-server \
+    /var/snap/onvif-gstreamer-lool/common/bbb_sunflower_1080p_30fps_normal.mp4
+
+  Run client with:
+  onvif-gstreamer-lool.test-onvif-client rtsp://127.0.0.1:8554/test
 grade: stable
 confinement: strict
 
