@@ -1,0 +1,132 @@
+name: onvif-gstreamer-lool
+base: core18
+version: '0.1'
+summary: ONVIF GStreamer
+description: |
+  ONVIF is a standardization body for IP based video streaming and
+  recording; it's based on RTSP.
+
+  This Snap contains ONVIF client and server based on GStreamer from:
+  https://github.com/GStreamer/gst-rtsp-server
+grade: stable
+confinement: strict
+
+parts:
+  gstreamer:
+    source: https://gitlab.freedesktop.org/gstreamer/gstreamer.git
+    plugin: meson
+    build-packages:
+    - pkg-config
+    - cmake
+    - flex
+    - bison
+    - libglib2.0-dev
+
+  gst-plugins-base:
+    after: [gstreamer]
+    source: https://gitlab.freedesktop.org/lool/gst-plugins-base.git
+    source-branch: sdp-rtp-dep
+    plugin: meson
+    build-packages:
+    - pkg-config
+    - cmake
+    # for timeoverlay element
+    - libpango1.0-dev
+    # for xvimagesink element
+    - libxv-dev
+    stage-packages:
+    - libcairo2
+    - libdatrie1
+    - libfontconfig1
+    - libfreetype6
+    - libgraphite2-3
+    - libharfbuzz0b
+    - libpango-1.0-0
+    - libpangocairo-1.0-0
+    - libpangoft2-1.0-0
+    - libpixman-1-0
+    - libpng16-16
+    - libthai0
+    - libx11-6
+    - libxau6
+    - libxcb-render0
+    - libxcb-shm0
+    - libxcb1
+    - libxdmcp6
+    - libxext6
+    - libxrender1
+    - libxv1
+
+  gst-plugins-good:
+    after: [gstreamer, gst-plugins-base]
+    source: https://gitlab.freedesktop.org/gstreamer/gst-plugins-good.git
+    plugin: meson
+    build-packages:
+    - pkg-config
+    - cmake
+    stage-packages:
+    - libcairo-gobject2
+
+  gst-plugins-bad:
+    after: [gstreamer, gst-plugins-base]
+    source: https://gitlab.freedesktop.org/gstreamer/gst-plugins-bad.git
+    plugin: meson
+    build-packages:
+    - pkg-config
+    - cmake
+    override-build: |
+      snapcraftctl build
+      cp -ar $SNAPCRAFT_PART_BUILD/snapbuild/tests/examples/* $SNAPCRAFT_PART_INSTALL/
+
+  gst-rtsp-server:
+    after: [gstreamer, gst-plugins-good, gst-plugins-bad]
+    source: https://github.com/GStreamer/gst-rtsp-server.git
+    plugin: meson
+    build-packages:
+    - pkg-config
+    - cmake
+    - libglib2.0-dev
+    override-build: |
+      snapcraftctl build
+      cp -ar $SNAPCRAFT_PART_BUILD/snapbuild/examples/* $SNAPCRAFT_PART_INSTALL/
+
+  # for avdec_h264 and other elements
+  gst-libav:
+    after: [gstreamer, gst-plugins-base]
+    # didn't get meson to work, used tarball release instead
+    #source: https://gitlab.freedesktop.org/gstreamer/gst-libav.git
+    #plugin: meson
+    source: https://gstreamer.freedesktop.org/src/gst-libav/gst-libav-1.16.2.tar.xz
+    plugin: autotools
+    # avoids building internal copy from source; Ubuntu 18.04 versions are
+    # too old however
+    #configflags: [--with-system-libav]
+    build-packages:
+    - pkg-config
+    - cmake
+    #- libavcodec-dev
+    #- libavfilter-dev
+    #- libavformat-dev
+    #- libavutil-dev
+    - yasm
+
+apps:
+  test-onvif-client:
+    command: test-onvif-client
+    plugs: [network, x11]
+    environment:
+      LD_LIBRARY_PATH: $SNAP/usr/local/lib/$SNAPCRAFT_ARCH_TRIPLET
+      GST_PLUGIN_SYSTEM_PATH: $SNAP/usr/local/lib/$SNAPCRAFT_ARCH_TRIPLET/gstreamer-1.0:$SNAP/lib/gstreamer-1.0
+  test-onvif-server:
+    command: test-onvif-server
+    plugs: [network,network-bind]
+    environment:
+      LD_LIBRARY_PATH: $SNAP/usr/local/lib/$SNAPCRAFT_ARCH_TRIPLET
+      GST_PLUGIN_SYSTEM_PATH: $SNAP/usr/local/lib/$SNAPCRAFT_ARCH_TRIPLET/gstreamer-1.0:$SNAP/lib/gstreamer-1.0
+  gst-inspect:
+    command: usr/local/bin/gst-inspect-1.0
+    plugs: [network,network-bind]
+    environment:
+      LD_LIBRARY_PATH: $SNAP/usr/local/lib/$SNAPCRAFT_ARCH_TRIPLET
+      GST_PLUGIN_SYSTEM_PATH: $SNAP/usr/local/lib/$SNAPCRAFT_ARCH_TRIPLET/gstreamer-1.0:$SNAP/lib/gstreamer-1.0
+
